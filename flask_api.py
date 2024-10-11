@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, redirect, render_template, request ,session, flash
 #import connexion
 from flask_restful import Api,Resource, reqparse
 
@@ -7,8 +7,9 @@ from flask_restful import Api,Resource, reqparse
 #app = connexion.App(__name__, specification_dir="./")
 #app.add_api("swagger.yml")
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 api = Api(app)
+app.secret_key ='askfnasfnalksfnd12234'
 
 
 request_par = reqparse.RequestParser()
@@ -17,13 +18,64 @@ request_par.add_argument("id",type=int,help="product id", required=True)
 request_par.add_argument("pr_count",type=int,help="product count" , required=True)
 
 
+productss = []
+users = {}
+
+
 @app.route("/")
 def home():
     return render_template("home.html")
 
 
 
-productss = []
+@app.route("/login", methods=['GET','POST'])
+def login():
+    if request.method == 'GET':
+        return render_template("login.html")
+    elif request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if username in users :
+            if password == users[username]['password']:
+                flash("loged in successfully")
+                session['username'] = username
+                session['password'] = password  
+                
+                return render_template('/dashboard.html' , username = username  , user_type = users[username]['type'] , email = users[username]['email'] )
+        else:
+            return 'invalid'
+
+
+
+@app.route("/register", methods=['GET','POST'])
+def register():
+    if request.method == 'GET':
+        return render_template("register.html")
+    elif request.method == 'POST':
+        user_name = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password') 
+        type = request.form.get('type')
+
+        if user_name in users:
+            flash("user already found ")
+            render_template("register.html")
+        else:
+            users[user_name] = {
+                'email' : email,
+                'password' : password,
+                'type' : type
+            }
+            flash('Registration successful! You can log in now.')
+            return redirect('/login')
+        
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return render_template('/home.html')
+
 
 
 class product(Resource):
@@ -56,7 +108,12 @@ class product(Resource):
         return {"response": "done"}, 200
     
 
+    def delete(self, product_id):
+        args = request_par.parse_args()
+        pro = {
+            
 
+        }
 
 class products(Resource):
     def get(self):
